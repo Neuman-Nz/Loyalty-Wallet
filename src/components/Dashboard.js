@@ -6,6 +6,7 @@ const currency = (n) => `KES ${Number(n).toFixed(2)}`;
 
 export default function Dashboard() {
   const [balance, setBalance] = useState(4942.0);
+  const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [transactions, setTransactions] = useState([
     { id: 1, type: "receive", amount: 120.5, date: new Date().toLocaleString() },
@@ -94,7 +95,7 @@ export default function Dashboard() {
       {/* Header */}
       <header className="p-5 flex items-center justify-between bg-white shadow-md sticky top-0 z-10">
         <h1 className="text-3xl font-extrabold text-indigo-600 tracking-tight">
-          Loyalty Wallet
+          Welcome
         </h1>
         <button
           onClick={handleToggleDetails}
@@ -130,7 +131,7 @@ export default function Dashboard() {
               </span>
             </div>
             <div className="mt-6">
-              <p className="text-sm opacity-80">Available Balance</p>
+              <p className="text-sm opacity-80">Available Points</p>
               <p className="text-4xl font-extrabold">{currency(balance)}</p>
             </div>
             <div className="mt-6 flex justify-between text-xs opacity-80">
@@ -157,58 +158,75 @@ export default function Dashboard() {
        {/* Transaction Actions */}
       <section className="mt-10 bg-white rounded-2xl shadow-lg p-6">
         <h3 className="text-lg font-bold text-gray-900 mb-4 tracking-wide">
-          Make a Transaction
+          Buy Airtime
         </h3>
 
-        <div className="flex gap-3 mb-4">
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="Enter amount"
-            className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-          />
-        </div>
+        <div className="flex flex-col gap-3 mb-4">
+        {/* Phone input */}
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => {
+            const val = e.target.value;
+            // Allow only digits & max 10 characters
+            if (/^\d{0,10}$/.test(val)) {
+              setPhone(val);
+            }
+          }}
+          placeholder="Enter phone number (0712345678)"
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+        />
+
+        {/* Amount input */}
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="Enter amount"
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+        />
+      </div>
 
         <div className="flex gap-4">
           <button
             onClick={() => handleTx("send")}
             className="flex-1 bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-semibold shadow-md transition-transform transform hover:-translate-y-0.5"
           >
-            🚀 Send
+          Other No.
           </button>
           <button
             onClick={() => handleTx("receive")}
             className="flex-1 bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-xl font-semibold shadow-md transition-transform transform hover:-translate-y-0.5"
           >
-            💰 Receive
+          My Number
           </button>
         </div>
-
+{/* 
         <p className="mt-4 text-sm text-gray-600 font-medium">
           💸 Spent this month: <span className="font-semibold text-gray-900">{currency(spentThisMonth)}</span>
-        </p>
+        </p> */}
       </section>
       </main>
 
       {/* Bottom Navigation */}
       <nav className="h-20 bg-white border-t flex items-center justify-around fixed bottom-0 left-0 right-0 shadow-md">
-        <button className="flex flex-col items-center text-gray-500 hover:text-indigo-600 transition">
+        {/* <button className="flex flex-col items-center text-gray-500 hover:text-indigo-600 transition">
           <span className="text-lg">💳</span>
           <span className="text-xs font-medium">Cards</span>
-        </button>
-        <button
-          onClick={() => navigate("/transactions")}
-          className="flex flex-col items-center"
-        >
-          <div className="h-14 w-14 bg-indigo-600 hover:bg-indigo-700 rounded-full flex items-center justify-center shadow-lg text-white transition">
-            ⌁
-          </div>
-        </button>
-        <button className="flex flex-col items-center text-gray-500 hover:text-indigo-600 transition">
+        </button> */}
+       <button
+            onClick={() => navigate("/transactions")}
+            className="flex flex-col items-center"
+          >
+            <div className="h-14 w-14 bg-indigo-600 hover:bg-indigo-700 rotate-45 rounded-[20%] flex items-center justify-center shadow-lg text-white text-2xl transition">
+              <span className="-rotate-45">⌁</span>
+            </div>
+          </button>
+
+        {/* <button className="flex flex-col items-center text-gray-500 hover:text-indigo-600 transition">
           <span className="text-lg">👤</span>
           <span className="text-xs font-medium">Account</span>
-        </button>
+        </button> */}
       </nav>
     </div>
   );
