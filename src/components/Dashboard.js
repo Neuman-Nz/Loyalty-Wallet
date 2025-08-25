@@ -94,7 +94,7 @@ export default function Dashboard() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-gray-100">
       {/* Header */}
       <header className="p-5 flex items-center justify-between bg-white shadow-md sticky top-0 z-10">
-        <h1 className="text-3xl font-extrabold text-indigo-600 tracking-tight">
+        <h1 className="text-3xl font-extrabold text-blue-600 tracking-tight">
           Welcome
         </h1>
         <button
@@ -105,7 +105,7 @@ export default function Dashboard() {
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="w-6 h-6 text-gray-700"
+            className="w-6 h-6 text-slate-700"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
@@ -119,10 +119,10 @@ export default function Dashboard() {
       <main className="flex-1 overflow-y-auto px-5 pb-28">
         {/* Balance Card */}
         <section className="mt-6">
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-6 text-white shadow-xl transform hover:scale-[1.01] transition">
+          <div className="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-3xl p-6 text-white shadow-xl transform hover:scale-[1.01] transition">
             <div className="flex justify-between items-center">
               <span className="bg-white/90 text-black px-3 py-1 text-xs font-medium rounded-full shadow">
-                Master Card ▾
+                Redeem Points▾
               </span>
               <span className="opacity-80 text-sm">
                 {showDetails
@@ -131,21 +131,11 @@ export default function Dashboard() {
               </span>
             </div>
             <div className="mt-6">
-              <p className="text-sm opacity-80">Available Points</p>
-              <p className="text-4xl font-extrabold">{currency(balance)}</p>
+              <p className="text-sm opacity-80">Points Balance</p>
+              <p className="text-4xl font-extrabold">{balance}</p>
             </div>
             <div className="mt-6 flex justify-between text-xs opacity-80">
-              {showDetails ? (
-                <>
-                  <p>Exp. 08/26</p>
-                  <p>Card 5679 1234 5678 9876</p>
-                </>
-              ) : (
-                <>
-                  <p>Exp. 08/26</p>
-                  <p>Card 5679••••</p>
-                </>
-              )}
+              <p>Value-Ksh. 123</p>
             </div>
             {showDetails && (
               <p className="mt-3 text-[11px] opacity-80">
@@ -155,78 +145,93 @@ export default function Dashboard() {
           </div>
         </section>
 
-       {/* Transaction Actions */}
-      <section className="mt-10 bg-white rounded-2xl shadow-lg p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 tracking-wide">
-          Buy Airtime
-        </h3>
+        {/* Top Up Section */}
+        <section className="mt-4 bg-white rounded-xl shadow p-3">
+          <h3 className="text-sm font-bold text-gray-900 mb-2">Top Up</h3>
 
-        <div className="flex flex-col gap-3 mb-4">
-        {/* Phone input */}
-        <input
-          type="tel"
-          value={phone}
-          onChange={(e) => {
-            const val = e.target.value;
-            // Allow only digits & max 10 characters
-            if (/^\d{0,10}$/.test(val)) {
-              setPhone(val);
-            }
-          }}
-          placeholder="Enter phone number (0712345678)"
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-        />
+          {/* Number Selection */}
+          <div className="flex items-center gap-4 mb-4">
+            <label className="flex items-center gap-1">
+              <input
+                type="radio"
+                name="numberType"
+                value="my"
+                checked={phone === "my"}
+                onChange={() => setPhone("my")}
+                className="w-3.5 h-3.5 text-emerald-600 border-gray-300"
+              />
+              <span className="text-gray-800 text-xs font-medium">My Number</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="numberType"
+                value="other"
+                checked={phone === "other"}
+                onChange={() => setPhone("other")}
+                className="w-3.5 h-3.5 text-emerald-600 border-gray-300"
+              />
+              <span className="text-gray-800 text-xs font-medium">Other Number</span>
+            </label>
+          </div>
 
-        {/* Amount input */}
-        <input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="Enter amount"
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-        />
-      </div>
+          {/* Phone input (only for Other Number) */}
+          {phone === "other" && (
+            <input
+              type="tel"
+              placeholder="Enter phone number"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-sm mb-4
+                 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+            />
+          )}
 
-        <div className="flex gap-4">
+          {/* Amount input */}
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Enter amount"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-sm mb-4
+               focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+          />
+
+          {/* Quick Select Buttons */}
+          <div className="flex flex-wrap gap-1 mb-3">
+            {[20, 50, 100, 200, 500, 1000].map((val) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setAmount(val)}
+                className={`px-3 py-1 rounded-full border text-xs transition
+                  ${Number(amount) === val
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-600"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}
+              >
+                {val}
+              </button>
+            ))}
+          </div> <br/>
+
+          {/* Top Up Button */}
           <button
-            onClick={() => handleTx("send")}
-            className="flex-1 bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-semibold shadow-md transition-transform transform hover:-translate-y-0.5"
+            onClick={() => alert(`Top up ${amount} to ${phone === "my" ? "My Number" : "Other Number"}`)}
+            className="w-full bg-gradient-to-r from-cyan-500 to-blue-600  text-white font-semibold rounded-lg py-2 text-sm shadow transition"
           >
-          Other No.
+            TOP UP
           </button>
-          <button
-            onClick={() => handleTx("receive")}
-            className="flex-1 bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-xl font-semibold shadow-md transition-transform transform hover:-translate-y-0.5"
-          >
-          My Number
-          </button>
-        </div>
-{/* 
-        <p className="mt-4 text-sm text-gray-600 font-medium">
-          💸 Spent this month: <span className="font-semibold text-gray-900">{currency(spentThisMonth)}</span>
-        </p> */}
-      </section>
+        </section>
       </main>
 
       {/* Bottom Navigation */}
       <nav className="h-20 bg-white border-t flex items-center justify-around fixed bottom-0 left-0 right-0 shadow-md">
-        {/* <button className="flex flex-col items-center text-gray-500 hover:text-indigo-600 transition">
-          <span className="text-lg">💳</span>
-          <span className="text-xs font-medium">Cards</span>
-        </button> */}
-       <button
-            onClick={() => navigate("/transactions")}
-            className="flex flex-col items-center"
-          >
-            <div className="h-14 w-14 bg-indigo-600 hover:bg-indigo-700 rotate-45 rounded-[20%] flex items-center justify-center shadow-lg text-white text-2xl transition">
-              <span className="-rotate-45">⌁</span>
-            </div>
-          </button>
-
-        {/* <button className="flex flex-col items-center text-gray-500 hover:text-indigo-600 transition">
-          <span className="text-lg">👤</span>
-          <span className="text-xs font-medium">Account</span>
-        </button> */}
+        <button
+          onClick={() => navigate("/transactions")}
+          className="flex flex-col items-center"
+        >
+          <div className="h-14 w-14 bg-blue-600 hover:bg-blue-700 rotate-45 rounded-[20%] flex items-center justify-center shadow-lg text-white text-2xl transition">
+            <span className="-rotate-45">⌁</span>
+          </div>
+        </button>
       </nav>
     </div>
   );
@@ -238,13 +243,13 @@ function BudgetRow({ label, left, percent }) {
       <div className="flex items-center justify-between">
         <div>
           <p className="font-semibold text-gray-800">{label}</p>
-          <p className="text-sm text-gray-500">{left}</p>
+          <p className="text-sm text-slate-500">{left}</p>
         </div>
-        <p className="text-lg font-bold text-indigo-600">{percent}%</p>
+        <p className="text-lg font-bold text-blue-600">{percent}%</p>
       </div>
       <div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden">
         <div
-          className="h-full bg-indigo-600 rounded-full transition-all"
+          className="h-full bg-blue-600 rounded-full transition-all"
           style={{ width: `${percent}%` }}
         />
       </div>
