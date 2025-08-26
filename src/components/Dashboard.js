@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { ArrowDownCircle, ArrowUpCircle } from "lucide-react";
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const currency = (n) => `KES ${Number(n).toFixed(2)}`;
 
@@ -18,6 +18,9 @@ export default function Dashboard() {
   const [remainingMs, setRemainingMs] = useState(0);
   const [hideTimeoutId, setHideTimeoutId] = useState(null);
   const [tickIntervalId, setTickIntervalId] = useState(null);
+
+  // ✅ Redeem popup toggle
+  const [isOpen, setIsOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -115,112 +118,163 @@ export default function Dashboard() {
         </button>
       </header>
 
-      {/* Main */}
-      <main className="flex-1 overflow-y-auto px-5 pb-28">
-        {/* Balance Card */}
-        <section className="mt-6">
-          <div className="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-3xl p-6 text-white shadow-xl transform hover:scale-[1.01] transition">
-            <div className="flex justify-between items-center">
-              <span className="bg-white/90 text-black px-3 py-1 text-xs font-medium rounded-full shadow">
-                Redeem Points▾
-              </span>
-              <span className="opacity-80 text-sm">
-                {showDetails
-                  ? `Visible ${expiresAt ? `(${formatMMSS(remainingMs)})` : ""}`
-                  : "Active Wallet"}
-              </span>
-            </div>
-            <div className="mt-6">
-              <p className="text-sm opacity-80">Points Balance</p>
-              <p className="text-4xl font-extrabold">{balance}</p>
-            </div>
-            <div className="mt-6 flex justify-between text-xs opacity-80">
-              <p>Value-Ksh. 123</p>
-            </div>
-            {showDetails && (
-              <p className="mt-3 text-[11px] opacity-80">
-                ⏳ Details auto-hide in {formatMMSS(remainingMs)}.
-              </p>
-            )}
-          </div>
-        </section>
+      {/* Balance Card Section */}
+      <section className="mt-6 flex justify-center relative">
+        <div className="w-[90%] max-w-md bg-gradient-to-r from-cyan-500 to-blue-600 rounded-3xl p-6 text-white shadow-xl transform hover:scale-[1.01] transition">
+          <div className="flex justify-between items-center">
+            {/* Redeem Points Button */}
+            <button
+              onClick={() => setIsOpen(true)}
+              className="bg-white/90 text-black px-3 py-1 text-xs font-medium rounded-full shadow hover:bg-white transition"
+            >
+              Redeem Points
+            </button>
 
-        {/* Top Up Section */}
-        <section className="mt-4 bg-white rounded-xl shadow p-3">
-          <h3 className="text-sm font-bold text-gray-900 mb-2">Top Up</h3>
-
-          {/* Number Selection */}
-          <div className="flex items-center gap-4 mb-4">
-            <label className="flex items-center gap-1">
-              <input
-                type="radio"
-                name="numberType"
-                value="my"
-                checked={phone === "my"}
-                onChange={() => setPhone("my")}
-                className="w-3.5 h-3.5 text-emerald-600 border-gray-300"
-              />
-              <span className="text-gray-800 text-xs font-medium">My Number</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="numberType"
-                value="other"
-                checked={phone === "other"}
-                onChange={() => setPhone("other")}
-                className="w-3.5 h-3.5 text-emerald-600 border-gray-300"
-              />
-              <span className="text-gray-800 text-xs font-medium">Other Number</span>
-            </label>
+            <span className="opacity-80 text-sm">
+              {showDetails
+                ? `Visible ${expiresAt ? `(${formatMMSS(remainingMs)})` : ""}`
+                : "Active Wallet"}
+            </span>
           </div>
 
-          {/* Phone input (only for Other Number) */}
-          {phone === "other" && (
+          <div className="mt-6">
+            <p className="text-sm opacity-80">Points Balance</p>
+            <p className="text-4xl font-extrabold">{balance}</p>
+          </div>
+
+          <div className="mt-6 flex justify-between text-xs opacity-80">
+            <p>Value - Ksh. 123</p>
+          </div>
+
+          {showDetails && (
+            <p className="mt-3 text-[11px] opacity-80">
+              ⏳ Details auto-hide in {formatMMSS(remainingMs)}.
+            </p>
+          )}
+        </div>
+
+        {/* Redeem Modal */}
+        {isOpen && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-3xl z-10">
+            <div className="bg-white rounded-2xl p-6 w-72 shadow-lg text-gray-800">
+              <h2 className="text-lg font-semibold mb-4">Redeem Points</h2>
+              <div className="flex flex-col gap-3">
+                <button className="w-full py-2 rounded-xl bg-cyan-500 text-white font-medium hover:bg-cyan-600 transition">
+                  📶 Data
+                </button>
+                <button className="w-full py-2 rounded-xl bg-indigo-500 text-white font-medium hover:bg-indigo-600 transition">
+                  ☎️ Airtime
+                </button>
+                <button className="w-full py-2 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition">
+                  💵 Cash
+                </button>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="mt-6 text-sm text-gray-500 hover:text-gray-700 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Top Up Section */}
+      <section className="mt-4 bg-white rounded-xl shadow p-3">
+        <h3 className="text-sm font-bold text-gray-900 mb-2">Top Up</h3>
+
+        {/* Number Selection */}
+        <div className="flex items-center gap-4 mb-4">
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="numberType"
+              value="my"
+              checked={phone === "my"}
+              onChange={() => setPhone("my")}
+              className="w-3.5 h-3.5 text-emerald-600 border-gray-300"
+            />
+            <span className="text-gray-800 text-xs font-medium">My Number</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="numberType"
+              value="other"
+              checked={phone === "other"}
+              onChange={() => setPhone("other")}
+              className="w-3.5 h-3.5 text-emerald-600 border-gray-300"
+            />
+            <span className="text-gray-800 text-xs font-medium">Other Number</span>
+          </label>
+        </div>
+
+        {/* Phone input (only for Other Number) */}
+        {phone === "other" && (
+          <div className="w-full flex gap-2 mb-4">
+            {/* Country Code */}
+            <select
+              className="border border-gray-200 rounded-lg px-2 py-2 text-xs shadow-sm
+                        focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+              defaultValue="+254"
+            >
+              <option value="+254">🇰🇪 +254</option>
+              <option value="+255">🇹🇿 +255</option>
+              <option value="+256">🇺🇬 +256</option>
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+44">🇬🇧 +44</option>
+            </select>
+
+            {/* Phone number */}
             <input
               type="tel"
               placeholder="Enter phone number"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-sm mb-4
-                 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-sm
+                        focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
             />
-          )}
+          </div>
+        )}
 
-          {/* Amount input */}
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="Enter amount"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-sm mb-4
-               focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
-          />
+        {/* Amount input */}
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="Enter amount"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-sm mb-4
+             focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+        />
 
-          {/* Quick Select Buttons */}
-          <div className="flex flex-wrap gap-1 mb-3">
-            {[20, 50, 100, 200, 500, 1000].map((val) => (
-              <button
-                key={val}
-                type="button"
-                onClick={() => setAmount(val)}
-                className={`px-3 py-1 rounded-full border text-xs transition
-                  ${Number(amount) === val
-                    ? "bg-gradient-to-r from-cyan-500 to-blue-600"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}
-              >
-                {val}
-              </button>
-            ))}
-          </div> <br/>
+        {/* Quick Select Buttons */}
+        <div className="flex flex-wrap gap-1 mb-3">
+          {[20, 50, 100, 200, 500, 1000].map((val) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setAmount(val)}
+              className={`px-3 py-1 rounded-full border text-xs transition
+                ${
+                  Number(amount) === val
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
+            >
+              {val}
+            </button>
+          ))}
+        </div>
 
-          {/* Top Up Button */}
-          <button
-            onClick={() => alert(`Top up ${amount} to ${phone === "my" ? "My Number" : "Other Number"}`)}
-            className="w-full bg-gradient-to-r from-cyan-500 to-blue-600  text-white font-semibold rounded-lg py-2 text-sm shadow transition"
-          >
-            TOP UP
-          </button>
-        </section>
-      </main>
+        {/* Top Up Button */}
+        <button
+          onClick={() =>
+            alert(`Top up ${amount} to ${phone === "my" ? "My Number" : "Other Number"}`)
+          }
+          className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-lg py-2 text-sm shadow transition"
+        >
+          TOP UP
+        </button>
+      </section>
 
       {/* Bottom Navigation */}
       <nav className="h-20 bg-white border-t flex items-center justify-around fixed bottom-0 left-0 right-0 shadow-md">
