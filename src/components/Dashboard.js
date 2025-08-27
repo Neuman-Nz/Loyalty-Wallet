@@ -22,6 +22,10 @@ export default function Dashboard() {
   // ✅ Redeem popup toggle
   const [isOpen, setIsOpen] = useState(false);
 
+  // ✅ Payment states
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+
   const navigate = useNavigate();
 
   const spentThisMonth = useMemo(
@@ -35,11 +39,11 @@ export default function Dashboard() {
   const handleTx = (type) => {
     const amt = parseFloat(amount);
     if (isNaN(amt) || amt <= 0) {
-      alert("Enter a valid amount");
+      setFeedback({ type: "error", message: "Enter a valid amount" });
       return;
     }
     if (type === "send" && amt > balance) {
-      alert("Insufficient balance");
+      setFeedback({ type: "error", message: "Insufficient balance" });
       return;
     }
     setBalance((b) => (type === "send" ? b - amt : b + amt));
@@ -91,6 +95,90 @@ export default function Dashboard() {
     const mm = Math.floor(totalSec / 60);
     const ss = totalSec % 60;
     return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  };
+
+  // 🔹 Handle Payment API Integration
+  const handlePayment = async () => {
+    if (!amount || Number(amount) <= 0) {
+      setFeedback({ type: "error", message: "Please enter a valid amount" });
+      return;
+    }
+
+    // pick msisdn
+    let msisdn = "";
+
+    if (phone === "my") {
+      // Replace this with dynamic user phone from auth/localStorage if available
+      msisdn = "254714328458";
+    } else {
+      const prefix = document.querySelector("#countryCode")?.value || "+254";
+      let number = document.querySelector("#otherPhone")?.value || "";
+
+      number = number.trim().replace(/^\+/, ""); // remove leading +
+      if (number.startsWith("0")) {
+        number = number.slice(1); // remove leading 0
+      }
+
+      msisdn = prefix.replace("+", "") + number;
+    }
+
+    if (!msisdn) {
+      setFeedback({ type: "error", message: "Enter a valid phone number" });
+      return;
+    }
+
+    const payload = { msisdn, amount: Number(amount) };
+    console.log("Payment payload:", payload);
+
+    setLoading(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch(
+        "https://loyalty-1048592730476.europe-west4.run.app/public/payment",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const raw = await res.json();
+      console.log("Raw Payment response:", raw);
+
+      const data = raw?.data ? raw.data : raw;
+
+      if (res.ok) {
+        setFeedback({
+          type: "success",
+          message: data?.stk_push?.CustomerMessage || "Payment request sent!",
+        });
+
+        setTransactions((list) => [
+          {
+            id: data.payment?.id || Date.now(),
+            type: "send",
+            amount: Number(amount),
+            date: new Date().toLocaleString(),
+          },
+          ...list,
+        ]);
+        setAmount("");
+      } else {
+        setFeedback({
+          type: "error",
+          message: data?.message || "Payment failed",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setFeedback({
+        type: "error",
+        message: "Network error while processing payment",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -213,8 +301,8 @@ export default function Dashboard() {
         {/* Phone input (only for Other Number) */}
         {phone === "other" && (
           <div className="w-full flex gap-2 mb-4">
-            {/* Country Code */}
             <select
+              id="countryCode"
               className="border border-gray-200 rounded-lg px-2 py-2 text-xs shadow-sm
                         focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
               defaultValue="+254"
@@ -225,9 +313,8 @@ export default function Dashboard() {
               <option value="+1">🇺🇸 +1</option>
               <option value="+44">🇬🇧 +44</option>
             </select>
-
-            {/* Phone number */}
             <input
+              id="otherPhone"
               type="tel"
               placeholder="Enter phone number"
               className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-sm
@@ -267,14 +354,35 @@ export default function Dashboard() {
 
         {/* Top Up Button */}
         <button
-          onClick={() =>
-            alert(`Top up ${amount} to ${phone === "my" ? "My Number" : "Other Number"}`)
-          }
-          className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-lg py-2 text-sm shadow transition"
+          onClick={handlePayment}
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-lg py-2 text-sm shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          TOP UP
+          {loading ? "Processing..." : "TOP UP"}
         </button>
       </section>
+
+      {/* Feedback Modal */}
+      {feedback && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-lg p-6 w-80 text-center">
+            <h2
+              className={`text-lg font-bold mb-3 ${
+                feedback.type === "success" ? "text-emerald-600" : "text-red-600"
+              }`}
+            >
+              {feedback.type === "success" ? "Success" : "Error"}
+            </h2>
+            <p className="text-gray-700 text-sm">{feedback.message}</p>
+            <button
+              onClick={() => setFeedback(null)}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg shadow hover:bg-blue-700 transition"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <nav className="h-20 bg-white border-t flex items-center justify-around fixed bottom-0 left-0 right-0 shadow-md">
