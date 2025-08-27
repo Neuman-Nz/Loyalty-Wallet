@@ -1,12 +1,68 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const currency = (n) => `KES ${Number(n).toFixed(2)}`;
 
+// --- Helpers to read + normalize user details from storage ---
+const getFirstNameFromUser = (u) => {
+  if (!u || typeof u !== "object") return "";
+  // Try common keys first, fall back to splitting "name"
+  return (
+    u.first_name ||
+    u.firstName ||
+    u.given_name ||
+    (typeof u.name === "string" ? u.name.split(" ")[0] : "")
+  );
+};
+
+// Always return KE format without "+" -> 2547XXXXXXXX
+const normalizeKePhone = (input) => {
+  if (!input) return "";
+  const digits = String(input).replace(/\D/g, "");
+  // If already like 2547XXXXXXXX, clamp to 12 digits
+  if (digits.startsWith("254") && digits.length >= 12) {
+    return digits.slice(0, 12);
+  }
+  // Use last 9 digits as the subscriber number, then prefix 254
+  const last9 = digits.slice(-9); // e.g. 712345678
+  return last9 ? "254" + last9 : "";
+};
+
 export default function Dashboard() {
+  const navigate = useNavigate();
+
+  // Load once from localStorage and normalize
+  const [profile, setProfile] = useState({ firstName: "User", phone: "" });
+
+  useEffect(() => {
+    try {
+      const rawUser = localStorage.getItem("user");
+      const user = rawUser ? JSON.parse(rawUser) : {};
+      const storedFallbackPhone =
+        localStorage.getItem("lastPhone") || user.msisdn || user.ACCOUNT;
+
+      const firstName =
+        getFirstNameFromUser(user) ||
+        user?.first_name ||
+        user?.firstName ||
+        "User";
+
+      const normalizedPhone = normalizeKePhone(
+        user?.phone || user?.msisdn || storedFallbackPhone || ""
+      );
+
+      setProfile({
+        firstName,
+        phone: normalizedPhone, // will look like 2547XXXXXXXX
+      });
+    } catch (e) {
+      console.error("Failed to read user from localStorage:", e);
+      setProfile({ firstName: "User", phone: "" });
+    }
+  }, []);
+
   const [balance, setBalance] = useState(4942.0);
-  const [phone, setPhone] = useState("");
+  const [phoneChoice, setPhoneChoice] = useState("my"); // "my" | "other"
   const [amount, setAmount] = useState("");
   const [transactions, setTransactions] = useState([
     { id: 1, type: "receive", amount: 120.5, date: new Date().toLocaleString() },
@@ -19,14 +75,9 @@ export default function Dashboard() {
   const [hideTimeoutId, setHideTimeoutId] = useState(null);
   const [tickIntervalId, setTickIntervalId] = useState(null);
 
-  // ✅ Redeem popup toggle
-  const [isOpen, setIsOpen] = useState(false);
-
-  // ✅ Payment states
+  const [isOpen, setIsOpen] = useState(false); // redeem popup
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
-
-  const navigate = useNavigate();
 
   const spentThisMonth = useMemo(
     () =>
@@ -97,29 +148,25 @@ export default function Dashboard() {
     return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
   };
 
-  // 🔹 Handle Payment API Integration
+  // --- Payment ---
   const handlePayment = async () => {
     if (!amount || Number(amount) <= 0) {
       setFeedback({ type: "error", message: "Please enter a valid amount" });
       return;
     }
 
-    // pick msisdn
     let msisdn = "";
 
-    if (phone === "my") {
-      // Replace this with dynamic user phone from auth/localStorage if available
-      msisdn = "254714328458";
+    if (phoneChoice === "my") {
+      // ✅ Use normalized stored phone in 2547XXXXXXXX format
+      msisdn = profile.phone;
     } else {
       const prefix = document.querySelector("#countryCode")?.value || "+254";
       let number = document.querySelector("#otherPhone")?.value || "";
 
-      number = number.trim().replace(/^\+/, ""); // remove leading +
-      if (number.startsWith("0")) {
-        number = number.slice(1); // remove leading 0
-      }
-
-      msisdn = prefix.replace("+", "") + number;
+      // Normalize "other" input to digits and to 2547XXXXXXXX as well
+      const digits = (prefix + number).replace(/\D/g, "");
+      msisdn = normalizeKePhone(digits);
     }
 
     if (!msisdn) {
@@ -186,7 +233,8 @@ export default function Dashboard() {
       {/* Header */}
       <header className="p-5 flex items-center justify-between bg-white shadow-md sticky top-0 z-10">
         <h1 className="text-3xl font-extrabold text-blue-600 tracking-tight">
-          Welcome
+          {/* ✅ First name from registration */}
+          Welcome, {profile.firstName}
         </h1>
         <button
           onClick={handleToggleDetails}
@@ -208,64 +256,33 @@ export default function Dashboard() {
 
       {/* Balance Card Section */}
       <section className="mt-6 flex justify-center relative">
-        <div className="w-[90%] max-w-md bg-gradient-to-r from-cyan-500 to-blue-600 rounded-3xl p-6 text-white shadow-xl transform hover:scale-[1.01] transition">
+        <div className="w-[90%] max-w-md bg-gradient-to-r from-cyan-500 to-blue-600 rounded-3xl p-6 text-white shadow-xl">
           <div className="flex justify-between items-center">
-            {/* Redeem Points Button */}
             <button
               onClick={() => setIsOpen(true)}
               className="bg-white/90 text-black px-3 py-1 text-xs font-medium rounded-full shadow hover:bg-white transition"
             >
               Redeem Points
             </button>
-
             <span className="opacity-80 text-sm">
               {showDetails
                 ? `Visible ${expiresAt ? `(${formatMMSS(remainingMs)})` : ""}`
                 : "Active Wallet"}
             </span>
           </div>
-
           <div className="mt-6">
             <p className="text-sm opacity-80">Points Balance</p>
             <p className="text-4xl font-extrabold">{balance}</p>
           </div>
-
           <div className="mt-6 flex justify-between text-xs opacity-80">
             <p>Value - Ksh. 123</p>
           </div>
-
           {showDetails && (
             <p className="mt-3 text-[11px] opacity-80">
               ⏳ Details auto-hide in {formatMMSS(remainingMs)}.
             </p>
           )}
         </div>
-
-        {/* Redeem Modal */}
-        {isOpen && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-3xl z-10">
-            <div className="bg-white rounded-2xl p-6 w-72 shadow-lg text-gray-800">
-              <h2 className="text-lg font-semibold mb-4">Redeem Points</h2>
-              <div className="flex flex-col gap-3">
-                <button className="w-full py-2 rounded-xl bg-cyan-500 text-white font-medium hover:bg-cyan-600 transition">
-                  📶 Data
-                </button>
-                <button className="w-full py-2 rounded-xl bg-indigo-500 text-white font-medium hover:bg-indigo-600 transition">
-                  ☎️ Airtime
-                </button>
-                <button className="w-full py-2 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition">
-                  💵 Cash
-                </button>
-              </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="mt-6 text-sm text-gray-500 hover:text-gray-700 transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* Top Up Section */}
@@ -279,33 +296,35 @@ export default function Dashboard() {
               type="radio"
               name="numberType"
               value="my"
-              checked={phone === "my"}
-              onChange={() => setPhone("my")}
+              checked={phoneChoice === "my"}
+              onChange={() => setPhoneChoice("my")}
               className="w-3.5 h-3.5 text-emerald-600 border-gray-300"
             />
-            <span className="text-gray-800 text-xs font-medium">My Number</span>
+            <span className="text-gray-800 text-xs font-medium">
+              {/* ✅ Show normalized KE phone */}
+              My Number {profile.phone ? `(${profile.phone})` : ""}
+            </span>
           </label>
           <label className="flex items-center gap-2">
             <input
               type="radio"
               name="numberType"
               value="other"
-              checked={phone === "other"}
-              onChange={() => setPhone("other")}
+              checked={phoneChoice === "other"}
+              onChange={() => setPhoneChoice("other")}
               className="w-3.5 h-3.5 text-emerald-600 border-gray-300"
             />
             <span className="text-gray-800 text-xs font-medium">Other Number</span>
           </label>
         </div>
 
-        {/* Phone input (only for Other Number) */}
-        {phone === "other" && (
+        {/* Other phone input */}
+        {phoneChoice === "other" && (
           <div className="w-full flex gap-2 mb-4">
             <select
               id="countryCode"
-              className="border border-gray-200 rounded-lg px-2 py-2 text-xs shadow-sm
-                        focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
               defaultValue="+254"
+              className="border rounded-lg px-2 py-2 text-xs shadow-sm"
             >
               <option value="+254">🇰🇪 +254</option>
               <option value="+255">🇹🇿 +255</option>
@@ -317,8 +336,7 @@ export default function Dashboard() {
               id="otherPhone"
               type="tel"
               placeholder="Enter phone number"
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-sm
-                        focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+              className="flex-1 border rounded-lg px-3 py-2 text-xs shadow-sm"
             />
           </div>
         )}
@@ -329,11 +347,10 @@ export default function Dashboard() {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="Enter amount"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-sm mb-4
-             focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition"
+          className="w-full border rounded-lg px-3 py-2 text-xs shadow-sm mb-4"
         />
 
-        {/* Quick Select Buttons */}
+        {/* Quick Select */}
         <div className="flex flex-wrap gap-1 mb-3">
           {[20, 50, 100, 200, 500, 1000].map((val) => (
             <button
@@ -352,7 +369,6 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Top Up Button */}
         <button
           onClick={handlePayment}
           disabled={loading}
@@ -395,26 +411,6 @@ export default function Dashboard() {
           </div>
         </button>
       </nav>
-    </div>
-  );
-}
-
-function BudgetRow({ label, left, percent }) {
-  return (
-    <div className="bg-white rounded-2xl p-5 shadow hover:shadow-md transition">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="font-semibold text-gray-800">{label}</p>
-          <p className="text-sm text-slate-500">{left}</p>
-        </div>
-        <p className="text-lg font-bold text-blue-600">{percent}%</p>
-      </div>
-      <div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-blue-600 rounded-full transition-all"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
     </div>
   );
 }
