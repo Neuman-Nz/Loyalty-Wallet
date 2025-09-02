@@ -4,7 +4,6 @@ import Dashboard from "./components/Dashboard";
 import Transactions from "./components/Transactions";
 import RegisterScreen from "./components/RegisterScreen";
 import Login from "./components/login";
-import verify from "./components/verify"; // ✅ you need this component too
 import Verify from "./components/verify";
 
 function App() {
@@ -33,9 +32,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<RegisterScreen />} />
-        <Route path="/login" element={<Login />} /> {/* ✅ fixed */}
-        <Route path="/verify" element={<Verify/>} /> {/* ✅ added */}
+        {/* ✅ Login is now the default */}
+        <Route path="/" element={<Login />} /> 
+        <Route path="/register" element={<RegisterScreen />} /> 
+        <Route path="/verify" element={<Verify />} /> 
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/transactions" element={<Transactions />} />
       </Routes>

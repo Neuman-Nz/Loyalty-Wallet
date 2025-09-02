@@ -9,7 +9,9 @@ export default function Verify() {
   const [loading, setLoading] = useState(false);
 
   const handleVerify = async () => {
-    if (!code || !phone) return alert("Enter the OTP code");
+    if (!code || !phone) {
+      return window.alert("Enter the OTP code");
+    }
 
     try {
       setLoading(true);
@@ -30,57 +32,57 @@ export default function Verify() {
       const data = await res.json();
       console.log("Verify response:", data);
 
-      // Assuming backend sends user info in data.user
       const firstName = data.user?.firstName || "";
       const lastName = data.user?.lastName || "";
 
-      alert("Logged in successfully");
+      window.alert("Logged in successfully");
 
-      // Pass user details to dashboard
       navigate("/dashboard", {
         state: { firstName, lastName, phone },
       });
     } catch (err) {
       console.error(err);
-      alert("Error: " + (err.message || "Invalid OTP"));
+      window.alert("Error: " + (err.message || "Invalid OTP"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center p-6">
-      <img
-        src="https://i.postimg.cc/hj42rGqy/PEAK-LOGO-RAW-FILES-03.png"
-        alt="Logo"
-        className="w-32 mb-6"
-      />
-      <h2 className="text-xl font-bold">Enter OTP</h2>
-      <p className="text-gray-600 mb-4">Code sent to {phone}</p>
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="bg-white shadow-lg rounded-xl p-8 w-96 text-center">
+        <img
+          src="https://i.postimg.cc/cLZTmCb1/wal-logo.jpg"
+          alt="Logo"
+          className="w-48 mx-auto mb-6" // 🔹 Increased size
+        />
+        <h2 className="text-2xl font-bold mb-2">Enter OTP</h2>
+        <p className="text-gray-600 mb-6">Code sent to {phone}</p>
 
-      <input
-        type="text"
-        maxLength={6}
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        placeholder="6-digit OTP code"
-        className="border p-3 rounded text-center tracking-widest w-64 mb-3"
-      />
+        <input
+          type="text"
+          maxLength={6}
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="6-digit OTP code"
+          className="border p-3 rounded text-center tracking-widest w-full mb-4"
+        />
 
-      <button
-        onClick={handleVerify}
-        disabled={loading}
-        className="bg-blue-900 text-white font-bold px-6 py-3 rounded w-64"
-      >
-        {loading ? "Verifying..." : "Login"}
-      </button>
+        <button
+          onClick={handleVerify}
+          disabled={loading}
+          className="bg-blue-900 text-white font-bold px-6 py-3 rounded-lg w-full hover:bg-blue-800 transition"
+        >
+          {loading ? "Verifying..." : "Log in"}
+        </button>
 
-      <button
-        onClick={() => alert("Resend OTP coming soon!")}
-        className="mt-4 text-blue-900 font-medium"
-      >
-        Didn’t get the code? Resend OTP
-      </button>
+        <button
+          onClick={() => window.alert("Resend OTP coming soon!")}
+          className="mt-4 text-blue-900 font-medium hover:underline"
+        >
+          Didn’t get the code? Resend OTP
+        </button>
+      </div>
     </div>
   );
 }

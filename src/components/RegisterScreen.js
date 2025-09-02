@@ -7,21 +7,18 @@ export default function RegisterScreen() {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false); // ✅ success modal toggle
   const countryCode = "254"; // no "+"
-
-  const showAlert = (title, message) => {
-    alert(`${title}: ${message}`);
-  };
 
   const handleSignup = async () => {
     const cleanedPhone = phone.trim().replace(/\D/g, "");
     if (!cleanedPhone || cleanedPhone.length < 9) {
-      showAlert("Validation", "Please enter a valid phone number");
+      alert("Validation: Please enter a valid phone number");
       return;
     }
 
     if (!firstName.trim() || !lastName.trim()) {
-      showAlert("Validation", "Please enter both first and last names");
+      alert("Validation: Please enter both first and last names");
       return;
     }
 
@@ -49,15 +46,19 @@ export default function RegisterScreen() {
         throw new Error(result?.message || "Signup failed. Try again.");
       }
 
-      showAlert("Success", "Account registered.");
+      // ✅ Show success modal
       localStorage.setItem("lastPhone", fullPhone);
-
-      navigate("/login"); // ✅ absolute path
+      setShowSuccess(true);
     } catch (error) {
-      showAlert("Error", error.message || "Something went wrong.");
+      alert("Error: " + (error.message || "Something went wrong."));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCloseSuccess = () => {
+    setShowSuccess(false);
+    navigate("/"); // ✅ move after closing modal
   };
 
   return (
@@ -65,9 +66,9 @@ export default function RegisterScreen() {
       {/* Logo */}
       <div className="flex justify-center pt-16 pb-6">
         <img
-          src="https://i.postimg.cc/hj42rGqy/PEAK-LOGO-RAW-FILES-03.png"
+          src="https://i.postimg.cc/cLZTmCb1/wal-logo.jpg"
           alt="Logo"
-          className="w-40 h-40 object-contain"
+          className="w-52 h-52 object-contain" // ✅ Bigger logo
         />
       </div>
 
@@ -127,6 +128,32 @@ export default function RegisterScreen() {
           {loading ? "Registering..." : "Sign Up"}
         </button>
       </div>
+
+      {/* ✅ Success Popup Modal */}
+      {showSuccess && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm text-center animate-fadeIn">
+            <img
+              src="https://i.postimg.cc/cLZTmCb1/wal-logo.jpg"
+              alt="Logo"
+              className="w-20 h-20 mx-auto mb-4"
+            />
+            <h3 className="text-xl font-bold text-[#0a1d44] mb-2">
+              🎉 Registration Successful!
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Welcome <span className="font-semibold">{firstName}</span>!  
+              Your account has been created successfully.
+            </p>
+            <button
+              onClick={handleCloseSuccess}
+              className="w-full py-2 bg-[#0a1d44] text-white rounded-lg font-semibold hover:bg-[#122c66]"
+            >
+              Continue to Login
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
