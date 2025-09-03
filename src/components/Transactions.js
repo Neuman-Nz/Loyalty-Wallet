@@ -1,17 +1,32 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, ArrowLeft } from "lucide-react";
 
 export default function Transactions() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("redeemed");
+  const [transactions, setTransactions] = useState([]);
 
-  const transactions = [
-    { id: 1, type: "redeemed", note: "Redeemed for Airtime", points: -100, subtext: "70", date: "2025-01-23" },
-    { id: 2, type: "redeemed", note: "Streetwise 2 - KFC (20% Off)", points: -300, subtext: "120", date: "2025-01-23" },
-    { id: 3, type: "redeemed", note: "Redeemed for Internet Bundles", points: -100, subtext: "70", date: "2025-01-23" },
-    { id: 4, type: "gained", note: "Bonus Points - Survey", points: 200, subtext: "Reward", date: "2025-01-20" },
-  ];
+  // fetch from API
+  const fetchTransactions = async () => {
+    try {
+      const res = await fetch(
+        "https://loyalty-1048592730476.europe-west4.run.app/api/v1/orgs/org-id/transactions"
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setTransactions(data?.transactions || []);
+      } else {
+        console.error("Failed to fetch transactions", data);
+      }
+    } catch (err) {
+      console.error("Error fetching transactions:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
 
   const filtered = transactions.filter((t) =>
     activeTab === "gained" ? t.type === "gained" : t.type === "redeemed"
@@ -69,8 +84,8 @@ export default function Transactions() {
                 {t.type === "redeemed" ? "–" : "+"}
               </div>
               <div>
-                <div className="font-medium text-sm">{t.note}</div>
-                <div className="text-xs text-gray-500">{t.subtext}</div>
+                <div className="font-medium text-sm">{t.note || "Transaction"}</div>
+                <div className="text-xs text-gray-500">{t.subtext || ""}</div>
               </div>
             </div>
             <div className={`font-semibold ${t.points < 0 ? "text-red-500" : "text-green-500"}`}>
@@ -80,7 +95,7 @@ export default function Transactions() {
         ))}
       </ul>
 
-      {/* Date footer (optional like in your screenshot) */}
+      {/* Date footer */}
       {filtered.length > 0 && (
         <div className="text-right text-xs text-gray-400 mt-4">
           {filtered[0].date}

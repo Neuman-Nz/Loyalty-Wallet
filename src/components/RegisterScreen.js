@@ -7,7 +7,7 @@ export default function RegisterScreen() {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false); // ✅ success modal toggle
+  const [showSuccess, setShowSuccess] = useState(false);
   const countryCode = "254"; // no "+"
 
   const handleSignup = async () => {
@@ -26,6 +26,7 @@ export default function RegisterScreen() {
 
     try {
       setLoading(true);
+      console.log("Registering user:", {firstName, lastName, phone: fullPhone});
 
       const response = await fetch(
         "https://loyalty-1048592730476.europe-west4.run.app/public/auth/register",
@@ -46,8 +47,17 @@ export default function RegisterScreen() {
         throw new Error(result?.message || "Signup failed. Try again.");
       }
 
-      // ✅ Show success modal
+      // Save phone + user for Dashboard
       localStorage.setItem("lastPhone", fullPhone);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          phone: fullPhone,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+        })
+      );
+
       setShowSuccess(true);
     } catch (error) {
       alert("Error: " + (error.message || "Something went wrong."));
@@ -58,7 +68,7 @@ export default function RegisterScreen() {
 
   const handleCloseSuccess = () => {
     setShowSuccess(false);
-    navigate("/"); // ✅ move after closing modal
+    navigate("/"); // go to login
   };
 
   return (
@@ -68,7 +78,7 @@ export default function RegisterScreen() {
         <img
           src="https://i.postimg.cc/cLZTmCb1/wal-logo.jpg"
           alt="Logo"
-          className="w-52 h-52 object-contain" // ✅ Bigger logo
+          className="w-52 h-52 object-contain"
         />
       </div>
 
@@ -129,7 +139,7 @@ export default function RegisterScreen() {
         </button>
       </div>
 
-      {/* ✅ Success Popup Modal */}
+      {/* Success Popup Modal */}
       {showSuccess && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm text-center animate-fadeIn">

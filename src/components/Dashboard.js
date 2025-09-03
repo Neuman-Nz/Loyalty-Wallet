@@ -4,35 +4,21 @@ import { useNavigate } from "react-router-dom";
 const currency = (n) => `KES ${Number(n).toFixed(2)}`;
 
 // --- Helpers to read + normalize user details from storage ---
-const getFirstNameFromUser = (u) => {
-  if (!u || typeof u !== "object") return "";
-  // Try common keys first, fall back to splitting "name"
-  return (
-    u.first_name ||
-    u.firstName ||
-    u.given_name ||
-    (typeof u.name === "string" ? u.name.split(" ")[0] : "")
-  );
-};
-
-// Always return KE format without "+" -> 2547XXXXXXXX
 const normalizeKePhone = (input) => {
   if (!input) return "";
   const digits = String(input).replace(/\D/g, "");
-  // If already like 2547XXXXXXXX, clamp to 12 digits
   if (digits.startsWith("254") && digits.length >= 12) {
     return digits.slice(0, 12);
   }
-  // Use last 9 digits as the subscriber number, then prefix 254
-  const last9 = digits.slice(-9); // e.g. 712345678
+  const last9 = digits.slice(-9);
   return last9 ? "254" + last9 : "";
 };
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  // Load once from localStorage and normalize
   const [profile, setProfile] = useState({ firstName: "User", phone: "" });
+  console.log("Profile state:1", profile);
 
   useEffect(() => {
     try {
@@ -41,11 +27,9 @@ export default function Dashboard() {
       const storedFallbackPhone =
         localStorage.getItem("lastPhone") || user.msisdn || user.ACCOUNT;
 
+      // ✅ Force use of firstName if available
       const firstName =
-        getFirstNameFromUser(user) ||
-        user?.first_name ||
-        user?.firstName ||
-        "User";
+        user?.firstName || user?.first_name || "User";
 
       const normalizedPhone = normalizeKePhone(
         user?.phone || user?.msisdn || storedFallbackPhone || ""
@@ -53,7 +37,7 @@ export default function Dashboard() {
 
       setProfile({
         firstName,
-        phone: normalizedPhone, // will look like 2547XXXXXXXX
+        phone: normalizedPhone,
       });
     } catch (e) {
       console.error("Failed to read user from localStorage:", e);
@@ -61,92 +45,34 @@ export default function Dashboard() {
     }
   }, []);
 
-  const [balance, setBalance] = useState(4942.0);
-  const [phoneChoice, setPhoneChoice] = useState("my"); // "my" | "other"
+  const [balance, setBalance] = useState(0);
+  const [phoneChoice, setPhoneChoice] = useState("my");
   const [amount, setAmount] = useState("");
-  const [transactions, setTransactions] = useState([
-    { id: 1, type: "receive", amount: 120.5, date: new Date().toLocaleString() },
-    { id: 2, type: "send", amount: 45.0, date: new Date().toLocaleString() },
-  ]);
-
-  const [showDetails, setShowDetails] = useState(false);
-  const [expiresAt, setExpiresAt] = useState(null);
-  const [remainingMs, setRemainingMs] = useState(0);
-  const [hideTimeoutId, setHideTimeoutId] = useState(null);
-  const [tickIntervalId, setTickIntervalId] = useState(null);
-
-  const [isOpen, setIsOpen] = useState(false); // redeem popup
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  console.log("Profile state:2", profile);
 
-  const spentThisMonth = useMemo(
-    () =>
-      transactions
-        .filter((t) => t.type === "send")
-        .reduce((sum, t) => sum + t.amount, 0),
-    [transactions]
-  );
-
-  const handleTx = (type) => {
-    const amt = parseFloat(amount);
-    if (isNaN(amt) || amt <= 0) {
-      setFeedback({ type: "error", message: "Enter a valid amount" });
-      return;
-    }
-    if (type === "send" && amt > balance) {
-      setFeedback({ type: "error", message: "Insufficient balance" });
-      return;
-    }
-    setBalance((b) => (type === "send" ? b - amt : b + amt));
-    setTransactions((list) => [
-      { id: Date.now(), type, amount: amt, date: new Date().toLocaleString() },
-      ...list,
-    ]);
-    setAmount("");
-  };
-
-  const handleToggleDetails = () => {
-    if (hideTimeoutId) clearTimeout(hideTimeoutId);
-    if (tickIntervalId) clearInterval(tickIntervalId);
-
-    if (!showDetails) {
-      const exp = Date.now() + 60 * 60 * 1000;
-      setShowDetails(true);
-      setExpiresAt(exp);
-      setRemainingMs(exp - Date.now());
-
-      const hid = setTimeout(() => {
-        setShowDetails(false);
-        setExpiresAt(null);
-        setRemainingMs(0);
-      }, 60 * 60 * 1000);
-      setHideTimeoutId(hid);
-
-      const iid = setInterval(() => {
-        const next = (expiresAt ?? exp) - Date.now();
-        setRemainingMs(next > 0 ? next : 0);
-      }, 1000);
-      setTickIntervalId(iid);
-    } else {
-      setShowDetails(false);
-      setExpiresAt(null);
-      setRemainingMs(0);
+  // fetch transactions from API
+  const fetchTransactions = async () => {
+    try {
+      const res = await fetch(
+        "https://loyalty-1048592730476.europe-west4.run.app/api/v1/orgs/org-id/transactions"
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setTransactions(data?.transactions || []);
+      } else {
+        console.error("Failed to fetch transactions", data);
+      }
+    } catch (err) {
+      console.error("Error fetching transactions:", err);
     }
   };
 
   useEffect(() => {
-    return () => {
-      if (hideTimeoutId) clearTimeout(hideTimeoutId);
-      if (tickIntervalId) clearInterval(tickIntervalId);
-    };
-  }, [hideTimeoutId, tickIntervalId]);
-
-  const formatMMSS = (ms) => {
-    const totalSec = Math.max(0, Math.floor(ms / 1000));
-    const mm = Math.floor(totalSec / 60);
-    const ss = totalSec % 60;
-    return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-  };
+    fetchTransactions();
+  }, []);
 
   // --- Payment ---
   const handlePayment = async () => {
@@ -156,15 +82,11 @@ export default function Dashboard() {
     }
 
     let msisdn = "";
-
     if (phoneChoice === "my") {
-      // ✅ Use normalized stored phone in 2547XXXXXXXX format
       msisdn = profile.phone;
     } else {
       const prefix = document.querySelector("#countryCode")?.value || "+254";
       let number = document.querySelector("#otherPhone")?.value || "";
-
-      // Normalize "other" input to digits and to 2547XXXXXXXX as well
       const digits = (prefix + number).replace(/\D/g, "");
       msisdn = normalizeKePhone(digits);
     }
@@ -198,18 +120,12 @@ export default function Dashboard() {
       if (res.ok) {
         setFeedback({
           type: "success",
-          message: data?.stk_push?.CustomerMessage || "Payment request sent!",
+          // ✅ Force custom popup message
+          message: "Payment initiated. Check your phone to proceed.",
         });
 
-        setTransactions((list) => [
-          {
-            id: data.payment?.id || Date.now(),
-            type: "send",
-            amount: Number(amount),
-            date: new Date().toLocaleString(),
-          },
-          ...list,
-        ]);
+        // refresh transactions after successful payment
+        fetchTransactions();
         setAmount("");
       } else {
         setFeedback({
@@ -228,29 +144,23 @@ export default function Dashboard() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-gray-100">
       {/* Header */}
       <header className="p-5 flex items-center justify-between bg-white shadow-md sticky top-0 z-10">
         <h1 className="text-3xl font-extrabold text-blue-600 tracking-tight">
-          {/* ✅ First name from registration */}
           Welcome, {profile.firstName}
         </h1>
         <button
-          onClick={handleToggleDetails}
-          className="p-2 rounded-full hover:bg-gray-100 transition"
-          aria-label="Toggle card details visibility"
-          title={showDetails ? "Hide card details" : "Reveal card details for 60 minutes"}
+          onClick={handleLogout}
+          className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-6 h-6 text-slate-700"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M7 3H3v4M17 3h4v4M21 17v4h-4M3 17v4h4" />
-          </svg>
+          Logout
         </button>
       </header>
 
@@ -258,30 +168,12 @@ export default function Dashboard() {
       <section className="mt-6 flex justify-center relative">
         <div className="w-[90%] max-w-md bg-gradient-to-r from-cyan-500 to-blue-600 rounded-3xl p-6 text-white shadow-xl">
           <div className="flex justify-between items-center">
-            <button
-              onClick={() => setIsOpen(true)}
-              className="bg-white/90 text-black px-3 py-1 text-xs font-medium rounded-full shadow hover:bg-white transition"
-            >
-              Redeem Points
-            </button>
-            <span className="opacity-80 text-sm">
-              {showDetails
-                ? `Visible ${expiresAt ? `(${formatMMSS(remainingMs)})` : ""}`
-                : "Active Wallet"}
-            </span>
+            <span className="opacity-80 text-sm">Active Wallet</span>
           </div>
           <div className="mt-6">
             <p className="text-sm opacity-80">Points Balance</p>
             <p className="text-4xl font-extrabold">{balance}</p>
           </div>
-          <div className="mt-6 flex justify-between text-xs opacity-80">
-            <p>Value - Ksh. 123</p>
-          </div>
-          {showDetails && (
-            <p className="mt-3 text-[11px] opacity-80">
-              ⏳ Details auto-hide in {formatMMSS(remainingMs)}.
-            </p>
-          )}
         </div>
       </section>
 
@@ -301,7 +193,6 @@ export default function Dashboard() {
               className="w-3.5 h-3.5 text-emerald-600 border-gray-300"
             />
             <span className="text-gray-800 text-xs font-medium">
-              {/* ✅ Show normalized KE phone */}
               My Number {profile.phone ? `(${profile.phone})` : ""}
             </span>
           </label>

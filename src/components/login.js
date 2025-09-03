@@ -5,14 +5,14 @@ export default function Login() {
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showOtpSent, setShowOtpSent] = useState(false); // ✅ modal toggle
-  const countryCode = "+254";
+  const [showOtpSent, setShowOtpSent] = useState(false);
+  const countryCode = "254"; // no "+"
 
-  // ✅ Pre-fill with last phone after signup
+  // Pre-fill with last phone after signup
   useEffect(() => {
     const lastPhone = localStorage.getItem("lastPhone");
     if (lastPhone) {
-      setPhone(lastPhone.replace(/^254/, "")); // remove 254 prefix for input
+      setPhone(lastPhone.replace(/^254/, "")); // remove prefix for input
     }
   }, []);
 
@@ -36,10 +36,12 @@ export default function Login() {
           body: JSON.stringify({ phone: fullPhone }),
         }
       );
-
+    
       if (!res.ok) throw new Error("Failed to send OTP");
 
-      // ✅ Show styled success popup
+      // Save temp phone for Verify step
+      localStorage.setItem("lastPhone", fullPhone);
+
       setShowOtpSent(true);
     } catch (err) {
       console.error(err);
@@ -51,7 +53,7 @@ export default function Login() {
 
   const handleCloseOtpPopup = () => {
     setShowOtpSent(false);
-    navigate("/verify", { state: { phone: countryCode + phone } }); // ✅ continue
+    navigate("/verify", { state: { phone: countryCode + phone } });
   };
 
   return (
@@ -78,7 +80,7 @@ export default function Login() {
             />
             <span className="font-semibold text-[#0a1d44]">{countryCode}</span>
           </div>
-         <input
+          <input
             type="tel"
             placeholder="712345678"
             value={phone}
@@ -98,7 +100,7 @@ export default function Login() {
           {loading ? "Sending OTP..." : "Send OTP"}
         </button>
 
-        {/* 👇 Register Instead */}
+        {/* Register Instead */}
         <p className="mt-4 text-sm text-gray-600">
           Don’t have an account?{" "}
           <button
@@ -110,7 +112,7 @@ export default function Login() {
         </p>
       </div>
 
-      {/* ✅ OTP Sent Popup */}
+      {/* OTP Sent Popup */}
       {showOtpSent && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm text-center animate-fadeIn">
@@ -119,9 +121,7 @@ export default function Login() {
               alt="Logo"
               className="w-48 mx-auto mb-6"
             />
-            <h3 className="text-xl font-bold text-[#0a1d44] mb-2">
-              📲 OTP Sent!
-            </h3>
+            <h3 className="text-xl font-bold text-[#0a1d44] mb-2">📲 OTP Sent!</h3>
             <p className="text-gray-600 mb-6">
               We’ve sent a one-time password to{" "}
               <span className="font-semibold">
